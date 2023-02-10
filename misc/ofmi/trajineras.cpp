@@ -5,6 +5,7 @@
 using namespace std;
 
 vector<int> robots;
+vector<int> sumas;
 
 // Devolver la suma de los valores del vector robots de un grupo que
 // inicia en el indiceInicio y es de tamanio tamGrupo.
@@ -17,12 +18,24 @@ int obtenerSuma(int tamGrupo, int indiceInicio) {
   return suma;
 }
 
+// Complejidad O(1)
+int obtenerSumaRapido(int tamGrupo, int indiceInicio) {
+  int suma = 0;
+  int indiceFin = indiceInicio + tamGrupo - 1;
+  suma = sumas[indiceFin];
+  if (indiceInicio > 0) {
+    suma -= sumas[indiceInicio - 1];
+  }
+  return suma;
+}
+
 // Regresa true si es posible formar grupos de tamanio tamGrupo cuya suma sea
 // menor a la carga maxima.
+// Complejidad O(N)
 bool esPosibleFormarGrupos(int tamGrupo, int cargaMaxima) {
   // Crear un grupo de tamanio tamGrupo para todas las posiciones del vector.
   for (int i = 0; i <= robots.size() - tamGrupo + 1; ++i) {
-    int suma = obtenerSuma(tamGrupo, i);
+    int suma = obtenerSumaRapido(tamGrupo, i);
     // Comprobar si este grupo excede la carga maxima.
     if (suma > cargaMaxima) {
       return false;
@@ -33,6 +46,7 @@ bool esPosibleFormarGrupos(int tamGrupo, int cargaMaxima) {
   return true;
 }
 
+// Complejidad O(logN * N)
 int busquedaBinaria(int cargaMaxima) {
   int ini = 0;
   int fin = robots.size();
@@ -62,6 +76,13 @@ int main() {
   robots.resize(cantidadRobots);
   for (int i = 0; i < robots.size(); ++i) {
     cin >> robots[i];
+  }
+
+  // Precalcular sumas
+  sumas.resize(cantidadRobots);
+  sumas[0] = robots[0];
+  for (int i = 1; i < sumas.size(); ++i) {
+    sumas[i] = sumas[i - 1] + robots[i];
   }
 
   // int maxGrupo = cantidadRobots; // Asumir que es posible formar un grupo con todos los robots.
