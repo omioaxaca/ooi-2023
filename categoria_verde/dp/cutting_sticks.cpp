@@ -3,63 +3,63 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <climits>
+#include <cstring>
 
 using namespace std;
 
-void solve(vector<int> cortes, int longitud) {
-  int pivote = rand();
-  vector<int> izquierda;
-  for (int i = 0; i < pivote; ++i) {
-    izquierda.push_back(cortes[i]);
-  }
-  vector<int> derecha;
-  for (int i = pivote; i < cortes.size(); ++i) {
-    derecha.push_back(cortes[i]);
-  }
-  solve(izquierda, longitud - pivote);
-  solve(derecha, pivote);
-}
+int memoria[50][50];
 
-
-int cortar(int indiceInicio, int indiceFin) {
+// Regresa el minimo de los cortes posibles entre los indices.
+int cortar(int indiceInicio, int indiceFin, const vector<int>& cortes) {
   // Revisar casos base
   // Si ya no hay cortes por hacer, entonces se acaba.
   if (indiceFin - indiceInicio <= 1) {
     return 0;
   }
-
-  // Probar las posibilidades.
-  // Elegir un pivote para hacer el corte.
-  for (int pivote = indiceInicio + 1; pivote < indiceFin; ++pivote) {
-    cortar(indiceInicio, pivote);
-    cortar(pivote, indiceFin);
+  if (memoria[indiceInicio][indiceFin] != 0) {
+    return memoria[indiceInicio][indiceFin];
   }
+
+  // El costo de cortar la barra actual es igual al tamanio de la barra actual.
+  int costoCorte = cortes[indiceFin] - cortes[indiceInicio];
+  // Iniciar un acumulador para el minimo costo posible, inicializado a un valor muy grande.
+  int minCostoCortes = INT32_MAX;
+  // Probar las opciones en donde se puede hacer un corte.
+  for (int corte = indiceInicio + 1; corte < indiceFin; ++corte) {
+    int costoCortesIzq = cortar(indiceInicio, corte, cortes);
+    int costoCortesDer = cortar(corte, indiceFin, cortes);
+    int costoTotal = costoCorte + costoCortesIzq + costoCortesDer;
+    minCostoCortes = min(minCostoCortes, costoTotal);
+  }
+  // Guardar en la memoria y regresar.
+  memoria[indiceInicio][indiceFin] = minCostoCortes;
+  return memoria[indiceInicio][indiceFin];
 }
 
-
-void imprimir(vector<int>& v) {
-  for (auto x : v) {
-    cout << x << " ";
-  }
-  cout << "\n";
-}
 
 int main() {
   int longitud;
   int cantidadCortes;
 
-  cin >> longitud;
-  cin >> cantidadCortes;
-  vector<int> cortes(cantidadCortes);
+  while(cin >> longitud && longitud != 0) {
+    // Reiniciar la memoria
+    memset(memoria, 0, sizeof(memoria));
 
-  for (int& corte : cortes) {
-    cin >> corte;
+    // Leer los datos
+    cin >> cantidadCortes;
+    vector<int> cortes;
+    // Agrego los limites de la barra.
+    cortes.push_back(0); // Inicio
+    for (int i = 0; i < cantidadCortes; ++i) {
+      int corte;
+      cin >> corte;
+      cortes.push_back(corte);
+    }
+    cortes.push_back(longitud); // Final de la barra
+
+    cout << "The minimum cutting is " << cortar(0, cortes.size() - 1, cortes) << "." << endl;
   }
-
-  do {
-    imprimir(cortes);
-  } while(next_permutation(cortes.begin(), cortes.end()));
-
 
   return 0;
 }
