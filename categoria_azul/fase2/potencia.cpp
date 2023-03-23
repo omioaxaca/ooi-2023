@@ -11,9 +11,11 @@ int main() {
     cin >> X >> A >> B;
 
     if ( X == 1 ) {
-        cout << pow(A+3, B) << endl;
+        int ans = pow(A+3, B);
+        cout << ans << endl;
     } else {
-        cout << pow(B+1, A) << endl;
+        int ans = pow(B+1, A);
+        cout << ans << endl;
     }
 
     return 0;
