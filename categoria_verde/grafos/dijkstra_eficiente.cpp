@@ -1,7 +1,8 @@
-// Implementacion Dijkstra (NO eficiente)
+// Implementacion Dijkstra con priotiry_queue
 #include <iostream>
 #include <vector>
 #include <set>
+#include <queue>
 
 using namespace std;
 
@@ -19,47 +20,32 @@ struct Nodo {
 };
 vector<vector<Nodo>> adj;
 
-int buscarMinimo(vector<int>& distancia, set<int>& spt) {
-  int indiceMinimo;
-  int minimo = INF;
-  for (int i = 0; i < distancia.size(); ++i) {
-    if (spt.find(i) != spt.end()) {
-      // El nodo ya esta en el SPT, entonces lo saltamos.
-      continue;
-    }
-    // Actualizar el minimo si encontramos uno menor.
-    if (distancia[i] < minimo) {
-      minimo = distancia[i];
-      indiceMinimo = i;
-    }
-  }
-  return indiceMinimo;
-}
-
 std::vector<int> dijkstra(int numNodos, int origen) {
-  // Crear conjunto de nodos de los que ya se conoce su distancia minima. Inicia vacio. SPT = Shortest Path Tree
-  set<int> spt;
   // 1. Inicializar las distancias en INF. El arreglo representa la distancia minima para ir desde el origen hasta i.
   vector<int> distancia(numNodos, INF);
   distancia[origen] = 0; // La distancia al origen es 0.
 
-  // Repetir numNodos veces
-  for (int contador = 0; contador < numNodos; ++contador) {
+  // Crear una cola con prioridad del costo menor.
+  priority_queue<Nodo> pq;
+  // Insertar el origen.
+  pq.push({origen, 0});
+  // Mientras haya nodos que no sean parte del SPT.
+  while (!pq.empty()) {
     // 2. Buscar el nodo con la distancia menor que no este en el spt
-    int u = buscarMinimo(distancia, spt);
-    // Agregar al spt
-    spt.insert(u);
+    int u = pq.top().id;
+    pq.pop();
 
     // 3. Para todos sus vecinos, intentar hacer la relajacion.
     for (Nodo n : adj[u]) {
       int v = n.id;
       int w = n.costo;
 
-      if (spt.find(v) != spt.end() || w == INF) {
-        continue;
+      if (distancia[u] + w < distancia[v]) {
+        // Relajacion
+        distancia[v] = distancia[u] + w;
+        // Ahora agregar a la cola porque necesitamos explorar este nodo.
+        pq.push({v, distancia[v]});
       }
-      // Relajacion
-      distancia[v] = min(distancia[v], distancia[u] + w);
     }
   }
 

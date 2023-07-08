@@ -46,6 +46,9 @@ void dijkstra(int src) {
 
     // 3. Para todos sus vecinos, intentar hacer la relajacion.
     for (int v : vecinos(u)) {
+      if (spt.find(v) != spt.end() || costo[u][v] == INF) {
+        continue;
+      }
       // Relajacion
       distancia[v] = min(distancia[v], distancia[u] + costo[u][v]);
     }
