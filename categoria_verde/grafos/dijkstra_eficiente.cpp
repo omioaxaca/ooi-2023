@@ -29,7 +29,6 @@ std::vector<int> dijkstra(int numNodos, int origen) {
   priority_queue<Nodo> pq;
   // Insertar el origen.
   pq.push({origen, 0});
-  // Mientras haya nodos que no sean parte del SPT.
   while (!pq.empty()) {
     // 2. Buscar el nodo con la distancia menor que no este en el spt
     int u = pq.top().id;
