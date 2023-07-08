@@ -41,6 +41,8 @@ void dijkstra(int src) {
   for (int contador = 0; contador < numNodos; ++contador) {
     // 2. Buscar el nodo con la distancia menor que no este en el spt
     int u = buscarMinimo();
+    // Agregar al spt
+    spt.insert(u);
 
     // 3. Para todos sus vecinos, intentar hacer la relajacion.
     for (int v : vecinos(u)) {
