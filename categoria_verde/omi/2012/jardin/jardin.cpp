@@ -56,6 +56,7 @@ struct Child {
   int index;
   int position;
   int direction;
+  int scarf;
 
   bool operator<(const Child& rhs) const {
     return position < rhs.position;
@@ -64,16 +65,14 @@ struct Child {
 
 // Update the position of the child when it moves towards next child. If no other child, then it keeps
 // moving until time runs out.
-void updatePosition(Child& child, const int* otherChildPosition, int& currentTime, const int& targetTime) {
-  int v = otherChildPosition ? *otherChildPosition : 0;
+void updatePosition(Child& child, const Child* otherChild, int& currentTime, const int& targetTime) {
+  int v = otherChild ? otherChild->position : 0;
   // cout << "Update: {" << child.position << "," << child.direction << "} with " << v << ". Current time: " << currentTime << endl;
 
-  if (otherChildPosition) {
-    // First update original otherChild position. The othetChild has been moving since the start. Hence, we just add the amount of steps
+  if (otherChild) {
+    // First update original otherChild position. The otherChild has been moving since the start. Hence, we just add the amount of steps
     // it moved since the beginning.
-    int othetChildDirection = child.direction * -1; // Moving towards us.
-    int currentOtherChildPosition = *otherChildPosition + currentTime * othetChildDirection;
-    // cout << "otherChild current position=" << currentOtherChildPosition << endl;
+    int currentOtherChildPosition = otherChild->position + currentTime * otherChild->direction;
 
     int distance = abs(currentOtherChildPosition - child.position);
     // Compute amount of steps to change direction.
@@ -87,24 +86,63 @@ void updatePosition(Child& child, const int* otherChildPosition, int& currentTim
     int timeToChange = ceil(distance / 2.0);
 
     int remainingTime = targetTime - currentTime;
-    if (timeToChange > remainingTime) {
+    if (timeToChange <= remainingTime) {
+      // This child intercepts with the other child.
+      child.position += child.direction * steps;
+      child.direction *= -1;
+      child.scarf = otherChild->index; // It gets the scarf from the other child.
+      currentTime += timeToChange;
+    }
+    else {
       // The child won't reach the other child before target time. So it will never change direction again.
       child.position += child.direction * remainingTime;
       currentTime = targetTime;
     }
-    else {
-      // Update position and direction.
-      child.position += child.direction * steps;
-      child.direction *= -1;
-      currentTime += timeToChange;
-    }
   }
   else {
-    // No more children to the right, hence this child never changes direction again.
+    // No more children moving towards this child, hence this child never changes direction again.
     int remainingTime = targetTime - currentTime;
     child.position += remainingTime * child.direction;
     currentTime = targetTime;
   }
+}
+
+// Return first element greater then target.
+int lower_bound(const std::vector<Child>& children, int target) {
+  int lo = 0;
+  int hi = children.size() - 1;
+  while (lo < hi) {
+    int mid = lo + (hi - lo) / 2;
+    if (children[mid].position > target) {
+      hi = mid;
+    }
+    else {
+      lo = mid + 1;
+    }
+  }
+  if (children[lo].position > target) {
+    return lo;
+  }
+  return -1;
+}
+
+// Return last element smaller than target.
+int upper_bound(const std::vector<Child>& children, int target) {
+  int lo = 0;
+  int hi = children.size() - 1;
+  while (lo < hi) {
+    int mid = lo + (hi - lo + 1) / 2;
+    if (children[mid].position < target) {
+      lo = mid;
+    }
+    else {
+      hi = mid - 1;
+    }
+  }
+  if (children[lo].position < target) {
+    return lo;
+  }
+  return children.size();
 }
 
 int main() {
@@ -113,16 +151,25 @@ int main() {
 
   int numChildren;
   cin >> numChildren;
-  vector<Child> children(numChildren);
+  vector<Child> childrenMovingLeft;
+  vector<Child> childrenMovingRight;
   std::map<int, Child> indexToChildren;
-  for (int i = 0; i < children.size(); ++i) {
-    auto& child = children[i];
+  for (int i = 0; i < numChildren; ++i) {
+    Child child;
     child.index = i + 1;
+    child.scarf = child.index; // He carries out his own scarf.
     scanf("%d %d", &child.position, &child.direction);
+    if (child.direction == 1) {
+      childrenMovingRight.push_back(child);
+    }
+    else {
+      childrenMovingLeft.push_back(child);
+    }
     // cin >> child.position >> child.direction;
     indexToChildren[child.index] = child;
   }
-  sort(children.begin(), children.end());
+  sort(childrenMovingRight.begin(), childrenMovingRight.end());
+  sort(childrenMovingLeft.begin(), childrenMovingLeft.end());
 
   int numQueries;
   cin >> numQueries;
@@ -140,53 +187,36 @@ int main() {
     }
     else {
       // cout << "Question N: " << childIdx << " " << targetTime << endl;
-      Child child;
-      int actualChildIndex = 0;
-      for (int i = 0; i < children.size(); ++i) {
-        if (children[i].index == childIdx) {
-          child = children[i];
-          actualChildIndex = i;
-          break;
-        }
-      }
+      auto child = indexToChildren[childIdx];
+      // cout  << "This child: idx:" << child.index << " {" << child.position << "," << child.direction << "}" << endl;
+      // Get the closest children moving towards this child.
+      // Child moving towards me from left to right should have a position less than me.
+      int right = upper_bound(childrenMovingRight, child.position);
+      // cout << "right: " << right << endl;
+      // Child moving towards me from right to left should have a position greater than me.
+      int left = lower_bound(childrenMovingLeft, child.position);
+      // cout << "left: " << left << endl;
 
       // Determine this child position based on his changes of direction
       int currentTime = 0;
-      int leftChildIdx = actualChildIndex - 1;
-      int rightChildIdx = actualChildIndex + 1;
       while (currentTime < targetTime) {
-        const int* nextChildPosition = nullptr;
+        // Get the next child that this child is going to intercept.
+        const Child* otherChild = nullptr;
         if (child.direction == 1) {
-          while (rightChildIdx < children.size() && children[rightChildIdx].direction == 1) {
-            rightChildIdx++;
-          }
-          if (rightChildIdx < children.size()) {
-            nextChildPosition = &children[rightChildIdx++].position;
+          if (left < childrenMovingLeft.size()) {
+            otherChild = &childrenMovingLeft[left++];
           }
         }
         else {
-          while (leftChildIdx >= 0 && children[leftChildIdx].direction == -1) {
-            leftChildIdx--;
-          }
-          if (leftChildIdx >= 0) {
-            nextChildPosition = &children[leftChildIdx--].position;
+          if (right >= 0) {
+            otherChild = &childrenMovingRight[right--];
           }
         }
-        updatePosition(child, nextChildPosition, currentTime, targetTime);
+        updatePosition(child, otherChild, currentTime, targetTime);
         // cout << "After update iteracion " << itr << ": pos=" << child.position << " t=" << currentTime << endl;
       }
-      // We know the end position of the child. Now, check which scarf it at this position.
-      // cout << "Child position: " << child.position << endl;
-      for (auto& c : children) {
-        int scarfStartingPosition = child.position - targetTime * child.direction;
-        if (c.position == scarfStartingPosition) {
-          // cout << i + 1 << "\n"; //1-index
-          printf("%d\n", c.index);
-          break;
-        }
-      }
+      cout << child.scarf << "\n";
     }
   }
-
   return 0;
 }
