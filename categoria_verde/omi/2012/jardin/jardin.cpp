@@ -58,10 +58,18 @@ struct Child {
 
 // Update the position of the child when it moves towards next child. If no other child, then it keeps
 // moving until time runs out.
-void updatePosition(Child& child, int* nextChildPosition, int& currentTime, const int& targetTime) {
-  int v = nextChildPosition ? *nextChildPosition : 0;
-  if (nextChildPosition) {
-    int distance = abs(*nextChildPosition - child.position);
+void updatePosition(Child& child, const int* otherChildPosition, int& currentTime, const int& targetTime) {
+  int v = otherChildPosition ? *otherChildPosition : 0;
+  // cout << "Update: {" << child.position << "," << child.direction << "} with " << v << ". Current time: " << currentTime << endl;
+
+  if (otherChildPosition) {
+    // First update original otherChild position. The othetChild has been moving since the start. Hence, we just add the amount of steps
+    // it moved since the beginning.
+    int othetChildDirection = child.direction * -1; // Moving towards us.
+    int currentOtherChildPosition = *otherChildPosition + currentTime * othetChildDirection;
+    // cout << "otherChild current position=" << currentOtherChildPosition << endl;
+
+    int distance = abs(currentOtherChildPosition - child.position);
     // Compute amount of steps to change direction.
     // Steps is floor(distance / 2). Use floor because if they met in the half of a step
     // then they change direction for the other half.
@@ -113,11 +121,13 @@ int main() {
     cin >> choice >> childIdx >> targetTime;
     childIdx--; // Make this 0-index
     if (choice == 'P') {
+      // cout << "Question P: " << childIdx << " " << targetTime << endl;
       const auto& child = children[childIdx];
       cout << child.position + child.direction * targetTime << "\n";
     }
     else {
-      auto& child = children[childIdx];
+      // cout << "Question N: " << childIdx << " " << targetTime << endl;
+      auto child = children[childIdx];
       // Find all children that move towards this child and store its position.
       vector<int> childrenFromRight;
       vector<int> childrenFromLeft;
@@ -134,13 +144,24 @@ int main() {
       sort(childrenFromLeft.begin(), childrenFromLeft.end(), greater<int>());
       sort(childrenFromRight.begin(), childrenFromRight.end());
 
+      // cout << "FromLeft: ";
+      // for (auto x : childrenFromLeft) {
+      //   cout << x << " ";
+      // }
+      // cout << "\n";
+      // cout << "FromRight: ";
+      // for (auto x : childrenFromRight) {
+      //   cout << x << " ";
+      // }
+      // cout << "\n";
+
       // Determine this child position based on his changes of direction
       int currentTime = 0;
       int leftChildIdx = 0;
       int rightChildIdx = 0;
       int itr = 0;
       while (currentTime < targetTime) {
-        int* nextChildPosition = nullptr;
+        const int* nextChildPosition = nullptr;
         if (child.direction == 1 && rightChildIdx < childrenFromRight.size()) {
           nextChildPosition = &childrenFromRight[rightChildIdx++];
         }
