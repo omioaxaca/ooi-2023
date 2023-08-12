@@ -15,7 +15,7 @@ struct Nodo {
   int costo;
 
   friend bool operator<(Nodo a, Nodo b) {
-    return a.costo < b.costo;
+    return a.costo > b.costo;
   }
 };
 vector<vector<Nodo>> adj;
