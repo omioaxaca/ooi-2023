@@ -48,12 +48,18 @@ Once we change direction because of one of them, we use the info from the next.
 #include <vector>
 #include <algorithm>
 #include <cmath>
+#include <map>
 
 using namespace std;
 
 struct Child {
+  int index;
   int position;
   int direction;
+
+  bool operator<(const Child& rhs) const {
+    return position < rhs.position;
+  }
 };
 
 // Update the position of the child when it moves towards next child. If no other child, then it keeps
@@ -102,15 +108,21 @@ void updatePosition(Child& child, const int* otherChildPosition, int& currentTim
 }
 
 int main() {
-  std::cin.tie(nullptr);
-  std::ios_base::sync_with_stdio(false);
+  // std::cin.tie(nullptr);
+  // std::ios_base::sync_with_stdio(false);
 
   int numChildren;
   cin >> numChildren;
   vector<Child> children(numChildren);
-  for (auto& child : children) {
-    cin >> child.position >> child.direction;
+  std::map<int, Child> indexToChildren;
+  for (int i = 0; i < children.size(); ++i) {
+    auto& child = children[i];
+    child.index = i + 1;
+    scanf("%d %d", &child.position, &child.direction);
+    // cin >> child.position >> child.direction;
+    indexToChildren[child.index] = child;
   }
+  sort(children.begin(), children.end());
 
   int numQueries;
   cin >> numQueries;
@@ -118,66 +130,58 @@ int main() {
     char choice;
     int childIdx;
     int targetTime;
-    cin >> choice >> childIdx >> targetTime;
-    childIdx--; // Make this 0-index
+    // cin >> choice >> childIdx >> targetTime;
+    scanf("\n%c %d %d", &choice, &childIdx, &targetTime);
     if (choice == 'P') {
       // cout << "Question P: " << childIdx << " " << targetTime << endl;
-      const auto& child = children[childIdx];
-      cout << child.position + child.direction * targetTime << "\n";
+      const auto& child = indexToChildren[childIdx];
+      // cout << child.position + child.direction * targetTime << "\n";
+      printf("%d\n", child.position + child.direction * targetTime);
     }
     else {
       // cout << "Question N: " << childIdx << " " << targetTime << endl;
-      auto child = children[childIdx];
-      // Find all children that move towards this child and store its position.
-      vector<int> childrenFromRight;
-      vector<int> childrenFromLeft;
-      for (auto& otherChild : children) {
-        if (otherChild.direction == -1 && otherChild.position > child.position) {
-          // Other child is at the left of this one.
-          childrenFromRight.push_back(otherChild.position);
-        }
-        else if (otherChild.direction == 1 && otherChild.position < child.position) {
-          childrenFromLeft.push_back(otherChild.position);
+      Child child;
+      int actualChildIndex = 0;
+      for (int i = 0; i < children.size(); ++i) {
+        if (children[i].index == childIdx) {
+          child = children[i];
+          actualChildIndex = i;
+          break;
         }
       }
-      // Sort based on its position. Index 0 has the child closest to the child of interest.
-      sort(childrenFromLeft.begin(), childrenFromLeft.end(), greater<int>());
-      sort(childrenFromRight.begin(), childrenFromRight.end());
-
-      // cout << "FromLeft: ";
-      // for (auto x : childrenFromLeft) {
-      //   cout << x << " ";
-      // }
-      // cout << "\n";
-      // cout << "FromRight: ";
-      // for (auto x : childrenFromRight) {
-      //   cout << x << " ";
-      // }
-      // cout << "\n";
 
       // Determine this child position based on his changes of direction
       int currentTime = 0;
-      int leftChildIdx = 0;
-      int rightChildIdx = 0;
-      int itr = 0;
+      int leftChildIdx = actualChildIndex - 1;
+      int rightChildIdx = actualChildIndex + 1;
       while (currentTime < targetTime) {
         const int* nextChildPosition = nullptr;
-        if (child.direction == 1 && rightChildIdx < childrenFromRight.size()) {
-          nextChildPosition = &childrenFromRight[rightChildIdx++];
+        if (child.direction == 1) {
+          while (rightChildIdx < children.size() && children[rightChildIdx].direction == 1) {
+            rightChildIdx++;
+          }
+          if (rightChildIdx < children.size()) {
+            nextChildPosition = &children[rightChildIdx++].position;
+          }
         }
-        else if (child.direction == -1 && leftChildIdx < childrenFromLeft.size()) {
-          nextChildPosition = &childrenFromLeft[leftChildIdx++];;
+        else {
+          while (leftChildIdx >= 0 && children[leftChildIdx].direction == -1) {
+            leftChildIdx--;
+          }
+          if (leftChildIdx >= 0) {
+            nextChildPosition = &children[leftChildIdx--].position;
+          }
         }
         updatePosition(child, nextChildPosition, currentTime, targetTime);
         // cout << "After update iteracion " << itr << ": pos=" << child.position << " t=" << currentTime << endl;
-        itr++;
       }
       // We know the end position of the child. Now, check which scarf it at this position.
       // cout << "Child position: " << child.position << endl;
-      for (int i = 0; i < children.size(); ++i) {
+      for (auto& c : children) {
         int scarfStartingPosition = child.position - targetTime * child.direction;
-        if (children[i].position == scarfStartingPosition) {
-          cout << i + 1 << "\n"; //1-index
+        if (c.position == scarfStartingPosition) {
+          // cout << i + 1 << "\n"; //1-index
+          printf("%d\n", c.index);
           break;
         }
       }
