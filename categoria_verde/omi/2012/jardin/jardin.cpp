@@ -66,9 +66,6 @@ struct Child {
 // Update the position of the child when it moves towards next child. If no other child, then it keeps
 // moving until time runs out.
 void updatePosition(Child& child, const Child* otherChild, int& currentTime, const int& targetTime) {
-  int v = otherChild ? otherChild->position : 0;
-  // cout << "Update: {" << child.position << "," << child.direction << "} with " << v << ". Current time: " << currentTime << endl;
-
   if (otherChild) {
     // First update original otherChild position. The otherChild has been moving since the start. Hence, we just add the amount of steps
     // it moved since the beginning.
@@ -146,14 +143,13 @@ int upper_bound(const std::vector<Child>& children, int target) {
 }
 
 int main() {
-  // std::cin.tie(nullptr);
-  // std::ios_base::sync_with_stdio(false);
-
   int numChildren;
-  cin >> numChildren;
+  scanf("%d", &numChildren);
   vector<Child> childrenMovingLeft;
   vector<Child> childrenMovingRight;
-  std::map<int, Child> indexToChildren;
+  vector<Child> indexToChildren(numChildren+1);
+  childrenMovingLeft.reserve(numChildren);
+  childrenMovingRight.reserve(numChildren);
   for (int i = 0; i < numChildren; ++i) {
     Child child;
     child.index = i + 1;
@@ -165,37 +161,29 @@ int main() {
     else {
       childrenMovingLeft.push_back(child);
     }
-    // cin >> child.position >> child.direction;
     indexToChildren[child.index] = child;
   }
   sort(childrenMovingRight.begin(), childrenMovingRight.end());
   sort(childrenMovingLeft.begin(), childrenMovingLeft.end());
 
   int numQueries;
-  cin >> numQueries;
+  scanf("%d", &numQueries);
   while (numQueries--) {
     char choice;
     int childIdx;
     int targetTime;
-    // cin >> choice >> childIdx >> targetTime;
     scanf("\n%c %d %d", &choice, &childIdx, &targetTime);
     if (choice == 'P') {
-      // cout << "Question P: " << childIdx << " " << targetTime << endl;
       const auto& child = indexToChildren[childIdx];
-      // cout << child.position + child.direction * targetTime << "\n";
       printf("%d\n", child.position + child.direction * targetTime);
     }
     else {
-      // cout << "Question N: " << childIdx << " " << targetTime << endl;
       auto child = indexToChildren[childIdx];
-      // cout  << "This child: idx:" << child.index << " {" << child.position << "," << child.direction << "}" << endl;
       // Get the closest children moving towards this child.
       // Child moving towards me from left to right should have a position less than me.
       int right = upper_bound(childrenMovingRight, child.position);
-      // cout << "right: " << right << endl;
       // Child moving towards me from right to left should have a position greater than me.
       int left = lower_bound(childrenMovingLeft, child.position);
-      // cout << "left: " << left << endl;
 
       // Determine this child position based on his changes of direction
       int currentTime = 0;
@@ -213,9 +201,8 @@ int main() {
           }
         }
         updatePosition(child, otherChild, currentTime, targetTime);
-        // cout << "After update iteracion " << itr << ": pos=" << child.position << " t=" << currentTime << endl;
       }
-      cout << child.scarf << "\n";
+      printf("%d\n", child.scarf);
     }
   }
   return 0;
