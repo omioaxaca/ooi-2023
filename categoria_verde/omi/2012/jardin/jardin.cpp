@@ -2,46 +2,49 @@
 https://omegaup.com/arena/problem/jardin
 Question P:
  It does not matter how many children intersect each other, the scarf always keeps moving in the original direction.
+ This is true because even when the scarf is being carried out by a different children, it will always move in the original direction.
 Question N:
-We already know how to get the position of the scarf. So, given the end position we can infere
-its starting position and hence, the index of the children that owns it. So now, we are only interested
-in knowing the end position of the child of interest.
+ From question P we learnt that the scarf always moves in one direction. If there were no other children, then this child
+will carry his own scarf forever. However, because it intercepts with others it will exchange his scarf.
+Since we said that scarfs only move in one direction, we can infere that all scarfs that this child will ever intersect are the ones
+moving towards him. Note that at each step, all of these scarfs move closer to this child. It is impossible that this child ever
+carries out scarfs from children moving against him because at each step they will get further away from him.
 
-To determine the end position of the child. We assume that it goes in the original direction
-until it finds another child moving in the opposite direction. It takes them d / 2 steps to
-to intersect, where d is the distance between them.
-Example 1: childA = {4, 1} childB = {14, -1}. A is at 4 while B is at 14. They are moving towards each other
-and the distance between them is d = 14 - 4 = 10. They intersect at 9, after each has moved 5 steps.
-Once the original child changes its moving direction, then it will intersect with another child.
-The tricky part is to determine at which point the original child changes direction.
+Example 1:
+Given a child A, imagine we call L to all children to his left moving towards him and R to all children
+to his right moving towards him.
+(L1->) (L2->) (L3->) (A->) (<-R1) (<-R2)
+At start, A carries his scarf. At some point it gets R1's scarf, at a later point L3's, then R2's and finally L2's. 
+Note that even when L1's scarf moves towards A, it never reaches A because after getting the scarf from L2, A keeps
+moving to the right and never changes direction again.
+
+Now the question is: at which point this children exchanges his scarf? The answer is, every time it intersect the scarf of a
+children moving towards him. Note that at this time, the child also changes direction.
+
 After some analysis, it can be observed that the first time the child changes direction is when he arrives
-at the middle point between himself and the child that was moving in opposite direction at starting time.
-This remains true regardless of the amount of children between them.
+at the middle point between himself and the scarf that was moving towards him at starting time.
+This remains true regardless of the amount of children between them (as pointed out in Question P).
 Example 2: A={2,1} B={4,1} C={6,1}, D={20, -1}, E={50,-1}
  In this case the first time childA changes direction is at position 11. That is because the distance
  between A and D is 20 - 2 = 18. Then, 18/2=9. A starting position is 2 + 9 gives 11.
- Now, the interesting part is that A and D never intersect. However, D meets with C and changes it direction
- which later meets with B, and finally B meets with A. Understanding this is the key to undestand the solution.
 
 Now, once the child has changed its direction, he is moving to the other side. The above statement
-remains true. He is going to change his direction at the middle point between him and the child that was
-moving towards him at the starting time. Note that the distance between them hasn't changed because
-they were moving in the same direction.
+remains true. He is going to exchange his scarf at the middle point between him and the scarf that was
+moving towards him at the starting time.
 Example 3:  X={-2,1} A={2,1} B={4,1} C={6,1}, D={20, -1}, E={50,-1}
- We said before that A changes its direction when he reaches position 11 after 9 steps.
- That also means that A changes it direction at time t=9. Now, child X starts at position -2 and at
- time t=9 is at position 7. Note how the distance between X and A at the beginning was 4 and it remains
- the same at t=9.
- At t=11, X and A meet at position 9. At this time, A changes direction again.
+ We said before that A changes his direction when he reaches position 11 after 9 steps.
+ That also means that A changes his direction at time t=9. Now, X's scarf starts at position -2 and at
+ time t=9 is at position 7.
+ At t=11, X and A meet at position 9. At this time, A gets X's scarf and changes moving direction.
 
-Now the question is, at what time and position A changes direction again? After some deep analysis
-and simulation, we can determine that we can't rely on the first children that was moving on towards us
-at the beginning (child D in example above) because we no longer know the direction he is moving.
-However, we can use the info from the second child that was moving towards us at the beggining. That
-is child E in the example. Why? Because that child has been moving towards us the whole time.
-Then, based on the assumptions we made in example 2, we can generalize the problem and determine that
-any change in direction is affected only by the children that were moving towards us at the beginning.
-Once we change direction because of one of them, we use the info from the next.
+The same behavior will repeat until:
+a) the child has intersected all scarfs that were moving towards him.
+b) the child never changes direction again.
+c) the time runs out.
+
+We can simulate the intersections with all scarfs, that has O(n/2) complexity for each query, where n can be 10^6.
+Given the amount of queries is 50, overal complexity is 25*10^6= 2.5*10^7.
+We need to be very very careful in the implementation, since the algorithm needs to be linear.
 */
 
 #include <iostream>
@@ -87,11 +90,11 @@ void updatePosition(Child& child, const Child* otherChild, int& currentTime, con
       // This child intercepts with the other child.
       child.position += child.direction * steps;
       child.direction *= -1;
-      child.scarf = otherChild->index; // It gets the scarf from the other child.
+      child.scarf = otherChild->index; // He gets the scarf from the other child.
       currentTime += timeToChange;
     }
     else {
-      // The child won't reach the other child before target time. So it will never change direction again.
+      // The child won't reach the other child before target time. So he will never change direction again.
       child.position += child.direction * remainingTime;
       currentTime = targetTime;
     }
@@ -145,11 +148,13 @@ int upper_bound(const std::vector<Child>& children, int target) {
 int main() {
   int numChildren;
   scanf("%d", &numChildren);
+
+  // Store the children based on the direction they move. This makes easy to query
+  // which is the next scarf that the child will get in O(1) time.
   vector<Child> childrenMovingLeft;
   vector<Child> childrenMovingRight;
+  // Keep a dictionary from original index to the children.
   vector<Child> indexToChildren(numChildren+1);
-  childrenMovingLeft.reserve(numChildren);
-  childrenMovingRight.reserve(numChildren);
   for (int i = 0; i < numChildren; ++i) {
     Child child;
     child.index = i + 1;
@@ -163,6 +168,7 @@ int main() {
     }
     indexToChildren[child.index] = child;
   }
+  // Sort children by its position.
   sort(childrenMovingRight.begin(), childrenMovingRight.end());
   sort(childrenMovingLeft.begin(), childrenMovingLeft.end());
 
@@ -179,7 +185,7 @@ int main() {
     }
     else {
       auto child = indexToChildren[childIdx];
-      // Get the closest children moving towards this child.
+      // Get the closest children moving towards this child. Use binary search to keep this O(log2n)
       // Child moving towards me from left to right should have a position less than me.
       int right = upper_bound(childrenMovingRight, child.position);
       // Child moving towards me from right to left should have a position greater than me.
